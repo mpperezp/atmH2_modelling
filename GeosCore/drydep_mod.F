@@ -193,6 +193,9 @@
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
+!  10 Feb 2020 - M Perez-Pena - Add special treatment to H2, following
+!                              the recommended values from Price et al.,
+!                              (2007) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,6 +253,7 @@
       INTEGER                        :: id_ACET,  id_ALD2
       INTEGER                        :: id_NK1
       INTEGER                        :: id_HNO3,  id_PAN,   id_ISOPND
+      INTEGER                        :: id_H2
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -436,6 +440,7 @@
 
       ! Arrays
       LOGICAL       :: LSNOW (State_Grid%NX,State_Grid%NY) ! Flag for snow/ice on the sfc
+      LOGICAL       :: DESERT(State_Grid%NX,State_Grid%NY) ! Flag for denoting a desert area
       REAL(f8)      :: CZ1   (State_Grid%NX,State_Grid%NY) ! Midpt ht of 1st model lev[m]
       REAL(f8)      :: TC0   (State_Grid%NX,State_Grid%NY) ! Grid box sfc temperature [K]
       REAL(f8)      :: ZH    (State_Grid%NX,State_Grid%NY) ! PBL height [m]
@@ -485,7 +490,7 @@
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
       CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC,  
-     &             RADIAT,     AZO,       USTAR,   ZH,        LSNOW, 
+     &             RADIAT,     AZO,       USTAR,   ZH,  LSNOW, DESERT, 
      &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -625,6 +630,33 @@
             ENDIF
 
             !-----------------------------------------------------------
+            ! Special treatment for H2
+            ! Test of Jan. 2020
+            !-----------------------------------------------------------
+            ! For H2 a fixed value of drydep is used with some distinctions
+            ! related with surface type and surface temperature, following the
+            ! methods described by Price et al., 2007.
+
+            IF ( N == id_H2 ) THEN
+               IF ( IS_LAND( I, J, State_Met ) ) THEN 
+                  IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
+                     DVZ = 3.94e-2_f8
+                  ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
+                     DVZ = 1.97e-4_f8
+                  ELSEIF ( TC0(I,J) .LT. 288.15e+0_f8 ) THEN
+                     DVZ = 9.85e-5_f8
+                  ENDIF
+               ENDIF
+               IF ( LSNOW(I, J) ) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
+               IF ( DESERT(I, J) ) THEN
+                 DVZ = 0e+0_f8
+               ENDIF
+            ENDIF
+
+
+            !-----------------------------------------------------------
             ! Compute drydep frequency and update diagnostics
             !-----------------------------------------------------------
 
@@ -682,7 +714,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE METERO( State_Grid, State_Met, CZ1, TC0, OBK, CFRAC,  
-     &                   RADIAT,    AZO,    USTR, ZH,        LSNOW, 
+     &                   RADIAT,    AZO,    USTR, ZH,  LSNOW, DESERT, 
      &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
 !
 ! !USES:
@@ -698,6 +730,7 @@
 ! !OUTPUT PARAMETERS:
 !
       LOGICAL,  INTENT(OUT) :: LSNOW (State_Grid%NX,State_Grid%NY)  ! Flag for denoting snow/ice
+      LOGICAL,  INTENT(OUT) :: DESERT(State_Grid%NX,State_Grid%NY)  ! Flag for denoting a desert area
       REAL(f8), INTENT(OUT) :: CZ1   (State_Grid%NX,State_Grid%NY)  ! Midpt ht of 1st model lev [m]
       REAL(f8), INTENT(OUT) :: TC0   (State_Grid%NX,State_Grid%NY)  ! Grid box sfc temp [K]
       REAL(f8), INTENT(OUT) :: OBK   (State_Grid%NX,State_Grid%NY)  ! Monin-Obhukov length [m]
@@ -753,6 +786,8 @@
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of output
 !                              arrays from (MAXIJ) to (IIPAR,JJPAR)
+!  27 Feb 2020 - M. Perez-Pena- Include a separate definition for desert
+!                              areas based on the GWETTOP variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -800,6 +835,9 @@
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
          LSNOW(I,J)  = ( State_Met%ALBD(I,J) > 0.4 )
+
+         ! Set logical DESERT if low soil top wetness ( GWETTOP < 0.35 )
+         DESERT(I,J) = ( State_Met%GWETTOP(I,J) < 0.35 )
 
          ! Monin-Obhukov length [m]
          OBK(I,J)    = GET_OBK( I, J, State_Met )
@@ -851,12 +889,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,    
+
+      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,
      &                   State_Grid, State_Met, RADIAT,   TEMP, SUNCOS,
-     &                   F0,        HSTAR,     XMW,       AIROSOL,     
-     &                   USTAR,     CZ1,       OBK,       CFRAC,           
-     &                   ZH,        LSNOW,     DVEL,      ZO,            
+     &                   F0,        HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,     CZ1,       OBK,       CFRAC,
+     &                   ZH,        LSNOW,     DVEL,      ZO,
      &                   RHB,       PRESSU,    W10,       RC          )
+
 !
 ! !USES:
 !
@@ -4145,6 +4185,7 @@
       NUMDEP    = 0
       id_ACET   = 0
       id_ALD2   = 0
+      id_H2     = 0
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
@@ -4307,6 +4348,10 @@
                CASE( 'ALD2' )
                   ! Flag the species ID of ALD2 for use above.
                   id_ALD2 = SpcInfo%ModelId
+
+               CASE( 'H2' )
+                  ! Flag the species ID of H2 for use above.
+                  id_H2 = SpcInfo%ModelId
 
                CASE( 'NITs', 'NITS' )
                   ! DEPNAME for NITs has to be in all caps, for
