@@ -52,6 +52,7 @@
 !                              - Updated the emission factors for NMVOCs and
 !                                NOx from extratropical forests, savannas and
 !                                agricultural fires from Akagi et al. (2011,ACP)
+!  05 Feb 2020 - M.P Perez-Pena - Added H2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,4 +317,14 @@ GFED3_EMFAC(29,3)=GFED3_EMFAC(2,3)
 GFED3_EMFAC(29,4)=GFED3_EMFAC(2,4)
 GFED3_EMFAC(29,5)=GFED3_EMFAC(2,5)
 GFED3_EMFAC(29,6)=GFED3_EMFAC(2,6)
+
+! H2
+GFED3_SPEC_NAME(30)="H2"
+GFED3_EMFAC(30,1)=GFED3_EMFAC(2,1)
+GFED3_EMFAC(30,2)=GFED3_EMFAC(2,2)
+GFED3_EMFAC(30,3)=GFED3_EMFAC(2,3)
+GFED3_EMFAC(30,4)=GFED3_EMFAC(2,4)
+GFED3_EMFAC(30,5)=GFED3_EMFAC(2,5)
+GFED3_EMFAC(30,6)=GFED3_EMFAC(2,6)
+
 !EOC
