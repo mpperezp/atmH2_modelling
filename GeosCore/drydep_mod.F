@@ -450,6 +450,8 @@
       LOGICAL       :: DESERT(State_Grid%NX,State_Grid%NY) ! Flag for denoting a desert area
       REAL(f8)      :: CZ1   (State_Grid%NX,State_Grid%NY) ! Midpt ht of 1st model lev[m]
       REAL(f8)      :: TC0   (State_Grid%NX,State_Grid%NY) ! Grid box sfc temperature [K]
+      REAL(f8)      :: FLAND (State_Grid%NX,State_Grid%NY) ! Fraction of land in the grid
+      REAL(f8)      :: FSNOW (State_Grid%NX,State_Grid%NY) ! Fraction of snow in the grid
       REAL(f8)      :: ZH    (State_Grid%NX,State_Grid%NY) ! PBL height [m]
       REAL(f8)      :: OBK   (State_Grid%NX,State_Grid%NY) ! Monin-Obhukov Length [m]
       REAL(f8)      :: CFRAC (State_Grid%NX,State_Grid%NY) ! Column cloud frac [unitless]
@@ -497,7 +499,8 @@
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
       CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC,  
-     &             RADIAT,     AZO,       USTAR,   ZH,  LSNOW, DESERT, 
+     &             RADIAT,     AZO,       USTAR,   ZH,  LSNOW, DESERT,
+     &             FLAND,      FSNOW,
      &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -638,29 +641,57 @@
 
             !-----------------------------------------------------------
             ! Special treatment for H2
-            ! Test of Jan. 2020
+            ! June 2020
             !-----------------------------------------------------------
             ! For H2 a fixed value of drydep is used with some distinctions
             ! related with surface type and surface temperature, following the
-            ! methods described by Price et al., 2007.
+            ! methods described by Price et al., 2007. Assign the dry
+            ! deposition velocity as a function of temperature and
+            ! weight the value by the fraction of land present in each
+            ! grid cell
 
             IF ( N == id_H2 ) THEN
-               IF ( IS_LAND( I, J, State_Met ) ) THEN 
-                  IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                     DVZ = 3.94e-2_f8
-                  ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                     DVZ = 1.97e-4_f8
-                  ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                     DVZ = 9.85e-5_f8
-                  ENDIF
-               ENDIF
-               IF ( LSNOW(I, J) ) THEN
-                  DVZ = 0e+0_f8
-               ENDIF
-               IF ( DESERT(I, J) ) THEN
-                 DVZ = 0e+0_f8
-               ENDIF
+                    IF ( FLAND(I,J) .GT. 0.1 ) THEN
+                            IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
+                                    DVZ = 3.94e-2_f8 * FLAND(I,J)
+                            ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
+                                    DVZ = 1.97e-4_f8 * FLAND(I,J)
+                            ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
+                                    DVZ = 9.85e-5_f8 * FLAND(I,J)
+                            ENDIF
+                    ELSEIF ( FLAND(I,J) .EQ. 0.) THEN
+                            DVZ = 0e+0_f8
+                    ENDIF
+                    IF ( FSNOW(I,J) .GT. 0.0 ) THEN
+                            DVZ = 0e+0_f8
+                    ENDIF
+                    IF ( DESERT(I,J) ) THEN
+                            DVZ = 0e+0_f8
+                    ENDIF
             ENDIF
+            !-----------------------------------------------------------
+            ! Special treatment for H2 using current definition of land
+            ! surfaces
+            ! Test Jan. 2020
+            !-----------------------------------------------------------
+
+            !IF ( N == id_H2 ) THEN
+            !   IF ( IS_LAND( I, J, State_Met ) ) THEN 
+            !      IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
+            !         DVZ = 3.94e-2_f8
+            !      ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
+            !         DVZ = 1.97e-4_f8
+            !      ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
+            !         DVZ = 9.85e-5_f8
+            !      ENDIF
+            !   ENDIF
+            !   IF ( LSNOW(I, J) ) THEN
+            !      DVZ = 0e+0_f8
+            !   ENDIF
+            !   IF ( DESERT(I, J) ) THEN
+            !     DVZ = 0e+0_f8
+            !   ENDIF
+            !ENDIF
 
 
             !-----------------------------------------------------------
@@ -740,6 +771,8 @@
       LOGICAL,  INTENT(OUT) :: DESERT(State_Grid%NX,State_Grid%NY)  ! Flag for denoting a desert area
       REAL(f8), INTENT(OUT) :: CZ1   (State_Grid%NX,State_Grid%NY)  ! Midpt ht of 1st model lev [m]
       REAL(f8), INTENT(OUT) :: TC0   (State_Grid%NX,State_Grid%NY)  ! Grid box sfc temp [K]
+      REAL(f8), INTENT(OUT) :: FLAND (State_Grid%NX,State_Grid%NY)  ! Fraction of land in the grid
+      REAL(f8), INTENT(OUT) :: FSNOW (State_Grid%NX,State_Grid%NY)  ! Fraction of snow in the grid
       REAL(f8), INTENT(OUT) :: OBK   (State_Grid%NX,State_Grid%NY)  ! Monin-Obhukov length [m]
       REAL(f8), INTENT(OUT) :: CFRAC (State_Grid%NX,State_Grid%NY)  ! Column cloud fraction [unitless]
       REAL(f8), INTENT(OUT) :: RADIAT(State_Grid%NX,State_Grid%NY)  ! Solar radiation @ ground [W/m2]
@@ -847,6 +880,12 @@
 
          ! Set logical DESERT if low soil top wetness ( GWETTOP < 0.35 )
          DESERT(I,J) = ( State_Met%GWETTOP(I,J) < 0.35 )
+
+         ! Fraction of land
+         FLAND(I,J)  = State_Met%FRLAND(I,J)
+
+         ! Fraction of snow
+         FSNOW(I,J)  = State_Met%FRSNO(I,J)
 
          ! Monin-Obhukov length [m]
          OBK(I,J)    = GET_OBK( I, J, State_Met )
