@@ -752,7 +752,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE METERO( State_Grid, State_Met, CZ1, TC0, OBK, CFRAC,  
-     &                   RADIAT,    AZO,    USTR, ZH,  LSNOW, DESERT, 
+     &                   RADIAT,    AZO,    USTR, ZH,  LSNOW, DESERT,
+     &                   FLAND,     FSNOW,
      &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
 !
 ! !USES:
