@@ -193,9 +193,16 @@
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
-!  10 Feb 2020 - M Perez-Pena - Add special treatment to H2, following
+!  10 Feb 2020 - M.P Perez-Pena - Add special treatment to H2, following
 !                              the recommended values from Price et al.,
 !                              (2007) 
+!  25 Jun 2020 - M.P Perez-Pena - Improve treatment of dry deposition
+!                              velocity for H2 based on the
+!                              meteorological fields of fraction of land
+!                              and fraction of snow. Consider using
+!                              every fraction of land greater than 0.1
+!                              to estimate a weighted dry deposition
+!                              velocity.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -643,7 +650,7 @@
                      DVZ = 3.94e-2_f8
                   ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
                      DVZ = 1.97e-4_f8
-                  ELSEIF ( TC0(I,J) .LT. 288.15e+0_f8 ) THEN
+                  ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
                      DVZ = 9.85e-5_f8
                   ENDIF
                ENDIF
@@ -786,8 +793,10 @@
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of output
 !                              arrays from (MAXIJ) to (IIPAR,JJPAR)
-!  27 Feb 2020 - M. Perez-Pena- Include a separate definition for desert
+!  27 Feb 2020 - M.P Perez-Pena - Include a separate definition for desert
 !                              areas based on the GWETTOP variable
+!  25 Jun 2020 - M.P Perez-Pena - Added fraction of land and fraction of
+!                              snow
 !EOP
 !------------------------------------------------------------------------------
 !BOC
