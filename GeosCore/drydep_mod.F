@@ -651,23 +651,23 @@
             ! grid cell
 
             IF ( N == id_H2 ) THEN
-                    IF ( FLAND(I,J) .GT. 0.1 ) THEN
-                            IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                                    DVZ = 3.94e-2_f8 * FLAND(I,J)
-                            ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                                    DVZ = 1.97e-4_f8 * FLAND(I,J)
-                            ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                                    DVZ = 9.85e-5_f8 * FLAND(I,J)
-                            ENDIF
-                    ELSEIF ( FLAND(I,J) .EQ. 0.) THEN
-                            DVZ = 0e+0_f8
-                    ENDIF
-                    IF ( FSNOW(I,J) .GT. 0.0 ) THEN
-                            DVZ = 0e+0_f8
-                    ENDIF
-                    IF ( DESERT(I,J) ) THEN
-                            DVZ = 0e+0_f8
-                    ENDIF
+               IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .LT. 0.1 ) THEN
+                  IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
+                     DVZ = 3.94e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
+                  ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
+                     DVZ = 1.97e-4_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
+                  ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
+                     DVZ = 9.85e-5_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
+                  ENDIF
+               ELSEIF ( FLAND(I,J) .EQ. 0.0) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
+               IF ( FSNOW(I,J) .GT. 0.1 ) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
+               IF ( DESERT(I,J) ) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
             ENDIF
             !-----------------------------------------------------------
             ! Special treatment for H2 using current definition of land
