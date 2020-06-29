@@ -651,7 +651,7 @@
             ! grid cell
 
             IF ( N == id_H2 ) THEN
-               IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .LT. 0.1 ) THEN
+               IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .LT. 0.5 ) THEN
                   IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
                      DVZ = 3.94e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
                   ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
@@ -662,7 +662,7 @@
                ELSEIF ( FLAND(I,J) .EQ. 0.0) THEN
                   DVZ = 0e+0_f8
                ENDIF
-               IF ( FSNOW(I,J) .GT. 0.1 ) THEN
+               IF ( FSNOW(I,J) .GT. 0.5 ) THEN
                   DVZ = 0e+0_f8
                ENDIF
                IF ( DESERT(I,J) ) THEN
