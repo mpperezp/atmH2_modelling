@@ -653,16 +653,13 @@
             IF ( N == id_H2 ) THEN
                IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .LT. 0.5 ) THEN
                   IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                     DVZ = 3.94e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
+                     DVZ = 5.18e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
                   ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                     DVZ = 1.97e-4_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
+                     DVZ = 2.59e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
                   ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                     DVZ = 9.85e-5_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
+                     DVZ = 1.295e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
                   ENDIF
-               ELSEIF ( FLAND(I,J) .EQ. 0.0) THEN
-                  DVZ = 0e+0_f8
-               ENDIF
-               IF ( FSNOW(I,J) .GT. 0.5 ) THEN
+               ELSEIF ( FLAND(I,J) .EQ. 0.0 .AND. FSNOW(I,J) .G.T 0.5 ) THEN
                   DVZ = 0e+0_f8
                ENDIF
                IF ( DESERT(I,J) ) THEN
