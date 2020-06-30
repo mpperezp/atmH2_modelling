@@ -659,7 +659,10 @@
                   ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
                      DVZ = 1.295e-2_f8 * ABS( FLAND(I,J)-FSNOW(I,J) )
                   ENDIF
-               ELSEIF ( FLAND(I,J) .EQ. 0.0 .AND. FSNOW(I,J) .G.T 0.5 ) THEN
+               ELSEIF ( FLAND(I,J) .EQ. 0.0 ) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
+               IF ( FSNOW(I,J) .GT. 0.5 ) THEN
                   DVZ = 0e+0_f8
                ENDIF
                IF ( DESERT(I,J) ) THEN
