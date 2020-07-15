@@ -441,7 +441,7 @@
 !
       ! Scalars
       INTEGER            :: I,   J,   L,   D,   N, NDVZ
-      REAL(f8)           :: DVZ, THIK
+      REAL(f8)           :: DVZ, THIK, EFLAND
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
 
@@ -651,21 +651,21 @@
             ! grid cell
 
             IF ( N == id_H2 ) THEN
-             IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .GT. 0.0 ) THEN
-                EFLAND = FLAND(I,J) - FSNOW(I,J)
+             EFLAND = FLAND(I,J) - FSNOW(I,J)
+             IF ( EFLAND .GT. 0.0 ) THEN
                 IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                   DVZ = 5.18e-2_f8 * MAX( EFLAND, 0.0e+0_f8)
+                   DVZ = 5.18e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+     &                                   FSNOW(I,J)), 0.0e+0_f8)
                 ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                   DVZ = 2.59e-2_f8 * MAX( EFLAND, 0.0e+0_f8)
+                   DVZ = 2.59e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+     &                                   FSNOW(I,J)), 0.0e+0_f8)
                 ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                   DVZ = 1.295e-2_f8 * MAX( EFLAND, 0.0e+0_f8)
+                   DVZ = 1.295e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+     &                                   FSNOW(I,J)), 0.0e+0_f8)
                 ENDIF
-             ELSEIF(FLAND(I,J) .EQ. 0.0 .AND. FSNOW(I,J) .EQ. 0.0)THEN
+             ELSEIF ( EFLAND .LT. 0.0 ) THEN
                 DVZ = 0e+0_f8
              ENDIF
-               !IF ( FSNOW(I,J) .GT. 0.5 ) THEN
-               !   DVZ = 0e+0_f8
-               !ENDIF
              IF ( DESERT(I,J) ) THEN
                 DVZ = 0e+0_f8
              ENDIF
