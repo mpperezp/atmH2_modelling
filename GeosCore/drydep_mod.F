@@ -653,6 +653,7 @@
             IF ( N == id_H2 ) THEN
              EFLAND = FLAND(I,J) - FSNOW(I,J)
              IF ( EFLAND .GT. 0.0 ) THEN
+             !IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .GT. 0.0 ) THEN
                 IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
                    DVZ = 5.18e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
      &                                   FSNOW(I,J)), 0.0e+0_f8)
@@ -670,30 +671,6 @@
                 DVZ = 0e+0_f8
              ENDIF
             ENDIF
-            !-----------------------------------------------------------
-            ! Special treatment for H2 using current definition of land
-            ! surfaces
-            ! Test Jan. 2020
-            !-----------------------------------------------------------
-
-            !IF ( N == id_H2 ) THEN
-            !   IF ( IS_LAND( I, J, State_Met ) ) THEN 
-            !      IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-            !         DVZ = 3.94e-2_f8
-            !      ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-            !         DVZ = 1.97e-4_f8
-            !      ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-            !         DVZ = 9.85e-5_f8
-            !      ENDIF
-            !   ENDIF
-            !   IF ( LSNOW(I, J) ) THEN
-            !      DVZ = 0e+0_f8
-            !   ENDIF
-            !   IF ( DESERT(I, J) ) THEN
-            !     DVZ = 0e+0_f8
-            !   ENDIF
-            !ENDIF
-
 
             !-----------------------------------------------------------
             ! Compute drydep frequency and update diagnostics
