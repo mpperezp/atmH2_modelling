@@ -655,21 +655,22 @@
 
             IF ( N == id_H2 ) THEN
              EFLAND = FLAND(I,J) - FSNOW(I,J)
-             IF ( YMID > 45.0 ) DVH2 = 1.9e-2_f8
-             IF ( YMID < 45.0 .and. YMID > 15.0 ) DVH2 = 3.5e-2_f8
-             IF ( YMID < 15.0 .and. YMID > -15.0 ) DVH2 = 5.4e-2_f8
-             IF ( YMID < -15.0 .and. YMID > -45.0 ) DVH2 = 5.6e-2_f8
-             IF ( YMID < -45.0 ) DVH2 = 5.6e-2_f8
+             IF ( YMID > 45.0                     ) DVH2 = 5.18e-2_f8
+             IF ( YMID < 45.0 .and. YMID > 15.0   ) DVH2 = 6.04e-2_f8
+             IF ( YMID < 15.0 .and. YMID > -15.0  ) DVH2 = 5.18e-2_f8
+             IF ( YMID < -15.0 .and. YMID > -45.0 ) DVH2 = 7.77e-2_f8
+             IF ( YMID < -45.0                    ) DVH2 = 5.18e-2_f8
              IF ( EFLAND .GT. 0.0 ) THEN
                 IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
                    DVZ = DVH2 * MAX(1.0e+0_f8 *(FLAND(I,J) -
-     &                                   FSNOW(I,J)), 0.0e+0_f8)
+     &                              FSNOW(I,J)), 0.0e+0_f8)
                 ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                   DVZ = (DVH2 / 2.0) * MAX(1.0e+0_f8 *(FLAND(I,J) -
-     &                                   FSNOW(I,J)), 0.0e+0_f8)
+                   DVZ = DVH2 / 2.0 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+     &                                    FSNOW(I,J)), 0.0e+0_f8)
                 ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                   DVZ = (DVH2 / 4.0) * MAX(1.0e+0_f8 *(FLAND(I,J) -
-      &                                   FSNOW(I,J)), 0.0e+0_f8)
+                   DVZ = DVH2 / 4.0 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+     &                                    FSNOW(I,J)), 0.0e+0_f8)
+                ENDIF
              ELSEIF ( EFLAND .LT. 0.0 ) THEN
                 DVZ = 0e+0_f8
              ENDIF
