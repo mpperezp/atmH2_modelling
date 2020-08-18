@@ -441,9 +441,9 @@
 !
       ! Scalars
       INTEGER            :: I,   J,   L,   D,   N, NDVZ
-      REAL(f8)           :: DVZ, THIK, EFLAND
+      REAL(f8)           :: DVZ, THIK, EFLAND, DVH2
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
-
+      REAL(fp)           :: YMID
 
       ! Arrays
       LOGICAL       :: LSNOW (State_Grid%NX,State_Grid%NY) ! Flag for snow/ice on the sfc
@@ -529,6 +529,9 @@
 
          ! THIK = thickness of surface layer [m]
          THIK   = State_Met%BXHEIGHT(I,J,1)
+
+         ! Latitude of grid box
+         YMID   = State_Grid%YMid(I,J)
 
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -652,18 +655,21 @@
 
             IF ( N == id_H2 ) THEN
              EFLAND = FLAND(I,J) - FSNOW(I,J)
+             IF ( YMID > 45.0 ) DVH2 = 1.9e-2_f8
+             IF ( YMID < 45.0 .and. YMID > 15.0 ) DVH2 = 3.5e-2_f8
+             IF ( YMID < 15.0 .and. YMID > -15.0 ) DVH2 = 5.4e-2_f8
+             IF ( YMID < -15.0 .and. YMID > -45.0 ) DVH2 = 5.6e-2_f8
+             IF ( YMID < -45.0 ) DVH2 = 5.6e-2_f8
              IF ( EFLAND .GT. 0.0 ) THEN
-             !IF ( FLAND(I,J) .GT. 0.0 .AND. FSNOW(I,J) .GT. 0.0 ) THEN
                 IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                   DVZ = 5.18e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+                   DVZ = DVH2 * MAX(1.0e+0_f8 *(FLAND(I,J) -
      &                                   FSNOW(I,J)), 0.0e+0_f8)
                 ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                   DVZ = 2.59e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
+                   DVZ = (DVH2 / 2.0) * MAX(1.0e+0_f8 *(FLAND(I,J) -
      &                                   FSNOW(I,J)), 0.0e+0_f8)
                 ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                   DVZ = 1.295e-2_f8 * MAX(1.0e+0_f8 *(FLAND(I,J) -
-     &                                   FSNOW(I,J)), 0.0e+0_f8)
-                ENDIF
+                   DVZ = (DVH2 / 4.0) * MAX(1.0e+0_f8 *(FLAND(I,J) -
+      &                                   FSNOW(I,J)), 0.0e+0_f8)
              ELSEIF ( EFLAND .LT. 0.0 ) THEN
                 DVZ = 0e+0_f8
              ENDIF
