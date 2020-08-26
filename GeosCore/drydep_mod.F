@@ -524,6 +524,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
+!$OMP+PRIVATE( YMID, EFLAND, DVH2 )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -662,14 +663,11 @@
              IF ( YMID < -45.0                    ) DVH2 = 5.18e-2_f8
              IF ( EFLAND .GT. 0.0 ) THEN
                 IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                   DVZ = DVH2 * MAX(1.0e+0_f8 *(FLAND(I,J) -
-     &                              FSNOW(I,J)), 0.0e+0_f8)
+                   DVZ = DVH2 * MAX( EFLAND, 0.0e+0_f8 )
                 ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                   DVZ = DVH2 / 2.0 * MAX(1.0e+0_f8 *(FLAND(I,J) -
-     &                                    FSNOW(I,J)), 0.0e+0_f8)
+                   DVZ = DVH2 / 2.0 * MAX( EFLAND, 0.0e+0_f8 )
                 ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                   DVZ = DVH2 / 4.0 * MAX(1.0e+0_f8 *(FLAND(I,J) -
-     &                                    FSNOW(I,J)), 0.0e+0_f8)
+                   DVZ = DVH2 / 4.0 * MAX( EFLAND, 0.0e+0_f8 )
                 ENDIF
              ELSEIF ( EFLAND .LT. 0.0 ) THEN
                 DVZ = 0e+0_f8
