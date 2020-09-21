@@ -193,16 +193,13 @@
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
-!  10 Feb 2020 - M.P Perez-Pena - Add special treatment to H2, following
-!                              the recommended values from Price et al.,
-!                              (2007) 
-!  25 Jun 2020 - M.P Perez-Pena - Improve treatment of dry deposition
-!                              velocity for H2 based on the
-!                              meteorological fields of fraction of land
-!                              and fraction of snow. Consider using
-!                              every fraction of land greater than 0.1
-!                              to estimate a weighted dry deposition
-!                              velocity.
+!  26 Jun 2020 - M.P Perez-Pena - Added special case for the dry
+!                              deposition of H2.
+!  21 Sep 2020 - M.P Perez-Pena - Added call to dry deposition velocity
+!                              fields H2_DEPVEL from the work developed 
+!                              by Yashiro et al. (2011) with the two layer soil 
+!                              model to account for soil uptake of H2.
+!                              See special case for H2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,6 +295,7 @@
       ! Allocatable arrays
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
+      REAL(f8),          ALLOCATABLE :: H2_DEPVEL(:, :) ! H2 dd vel [cm/s]
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -327,6 +325,7 @@
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -441,8 +440,9 @@
 !
       ! Scalars
       INTEGER            :: I,   J,   L,   D,   N, NDVZ
-      REAL(f8)           :: DVZ, THIK, EFLAND, DVH2
+      REAL(f8)           :: DVZ, THIK, DVH2
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
+      CHARACTER(LEN=255) :: LOC='DRY DEP (drydep_mod.F)'
       REAL(fp)           :: YMID
 
       ! Arrays
@@ -518,13 +518,23 @@
          RETURN
       ENDIF
 
+      ! Call the dry deposition velocities for H2
+      CALL HCO_EvalFld( am_I_Root, HcoState, 'H2_DEPVEL',
+     &                         H2_DEPVEL, RC )
+
+      IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find offline H2DV in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, LOC )
+          RETURN
+      ENDIF
+
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
-!$OMP+PRIVATE( YMID, EFLAND, DVH2 )
+!$OMP+PRIVATE( YMID, DVH2 )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -645,36 +655,19 @@
 
             !-----------------------------------------------------------
             ! Special treatment for H2
-            ! June 2020
+            ! Sep. 21 2020
             !-----------------------------------------------------------
-            ! For H2 a fixed value of drydep is used with some distinctions
-            ! related with surface type and surface temperature, following the
-            ! methods described by Price et al., 2007. Assign the dry
-            ! deposition velocity as a function of temperature and
-            ! weight the value by the fraction of land present in each
-            ! grid cell
+            ! Added special case to read the dry deposition of H2 using
+            ! HEMCO. HEMCO re-grids the information of the spatial
+            ! distributed dry deposition velocity fields provided by
+            ! Yashiro et al. (2011) (result from the implementation of a
+            ! two layer soil model). The fields (netCDF files 2D data
+            ! with a resolution of T42 (~2.8deg, 64x128 grid) are
+            ! specified in the NON-EMISSION-DATA section in the
+            ! HEMCO_Config.rc file.
 
             IF ( N == id_H2 ) THEN
-             EFLAND = FLAND(I,J) - FSNOW(I,J)
-             IF ( YMID > 45.0                     ) DVH2 = 5.18e-2_f8
-             IF ( YMID < 45.0 .and. YMID > 15.0   ) DVH2 = 6.04e-2_f8
-             IF ( YMID < 15.0 .and. YMID > -15.0  ) DVH2 = 5.18e-2_f8
-             IF ( YMID < -15.0 .and. YMID > -45.0 ) DVH2 = 7.77e-2_f8
-             IF ( YMID < -45.0                    ) DVH2 = 5.18e-2_f8
-             IF ( EFLAND .GT. 0.0 ) THEN
-                IF ( TC0(I,J) .GT. 273.15e+0_f8 ) THEN
-                   DVZ = DVH2 * MAX( EFLAND, 0.0e+0_f8 )
-                ELSEIF ( TC0(I,J) .LT. 273.15e+0_f8 ) THEN
-                   DVZ = DVH2 / 2.0 * MAX( EFLAND, 0.0e+0_f8 )
-                ELSEIF ( TC0(I,J) .LT. 258.15e+0_f8 ) THEN
-                   DVZ = DVH2 / 4.0 * MAX( EFLAND, 0.0e+0_f8 )
-                ENDIF
-             ELSEIF ( EFLAND .LT. 0.0 ) THEN
-                DVZ = 0e+0_f8
-             ENDIF
-             IF ( DESERT(I,J) ) THEN
-                DVZ = 0e+0_f8
-             ENDIF
+             DVZ  = H2_DEPVEL(I, J)
             ENDIF
 
             !-----------------------------------------------------------
@@ -4096,6 +4089,8 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
       USE Species_Mod,    ONLY : Species
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
@@ -4190,6 +4185,7 @@
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  07 Nov 2017 - R. Yantosca - Now return error condition to calling program
+!  21 Sep 2020 - M. Perez-Pena- Add call to H2_DEPVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4198,10 +4194,12 @@
 !
       LOGICAL                :: LDRYD
       LOGICAL                :: IS_Hg
+      INTEGER                :: AS, INDICES(4), YYYYMMDD, HHMMSS
       INTEGER                :: N
 
       ! Strings
       CHARACTER(LEN=255)     :: Msg, ErrMsg, ThisLoc
+      CHARACTER(LEN=255)     :: LOC='DRY DEP (drydep_mod.F)'
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo 
@@ -4304,6 +4302,12 @@
          CALL GC_CheckVar( 'drydep_mod:XMW', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          XMW = 0e+0_f8
+
+         ! Dry deposition velocity for H2 spatial fields
+         ALLOCATE( H2_DEPVEL(State_Grid%NX,State_Grid%NY),
+     &                 STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2_DEPVEL' )
+         H2_DEPVEL = 0e+0_fp
 
       ENDIF
 
@@ -4577,6 +4581,7 @@
       IF ( ALLOCATED( NTRAIND  ) ) DEALLOCATE( NTRAIND  )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( XMW      ) ) DEALLOCATE( XMW      )
+      IF ( ALLOCATED( H2_DEPVEL ) ) DEALLOCATE( H2_DEPVEL )
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC
